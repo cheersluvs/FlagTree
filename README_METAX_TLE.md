@@ -8,6 +8,7 @@ C550. Each fix is its own commit:
 |---|---|---|
 | `[Metax][TLE] Metax TLE support local pointer (#971)` | cherry-pick from `main` | the tag predates it; without it `mctle.local_pointers` lowers to an `llvm.bitcast` across address spaces and fails verification |
 | `Keep shared buffers reached through mctle.local_pointers alive` | `third_party/metax/lib/Analysis/Alias.cpp` | metax's own alias analysis lacks the `local_pointers` case `lib/Analysis/Alias.cpp` has under `__TLE__`, so the shared-memory allocator reuses live TLE buffers for scratch and other buffers -- **silently wrong results** |
+| `Propagate pointer aliases result by result` | `third_party/metax/lib/Analysis/Alias.cpp` | follow-up to the above: the pointer rule now looks at every result, not only result 0, so a pointer returned as a later result (e.g. from `inline_asm_elementwise`) keeps its buffer alive too |
 | `Pass __MCTLE__ to TableGen as well` | `cmake/FlagTreeOptions.cmake` | `__MCTLE__` was defined for C++ only; `TritonOps.td` guards #971's `tt.atomic_rmw` / `tt.atomic_cas` pointer constraint with it, so every `tt.atomic_rmw` on a shared pointer failed the verifier with "ptr type matches value type" |
 
 ## Build
