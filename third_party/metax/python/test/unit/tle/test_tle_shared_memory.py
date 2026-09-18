@@ -6,7 +6,7 @@ import triton
 import triton.language as tl
 
 
-def _mctle_enabled():
+def _tle_enabled():
     try:
         import triton.experimental.tle.language  # noqa: F401
         from triton.backends.metax import compiler as metax_compiler
@@ -15,9 +15,9 @@ def _mctle_enabled():
     return getattr(metax_compiler, "enable_mctle", False) is True
 
 
-pytestmark = pytest.mark.skipif(not _mctle_enabled(), reason="requires a metax build with mctle")
+pytestmark = pytest.mark.skipif(not _tle_enabled(), reason="requires a metax build with mctle")
 
-if _mctle_enabled():
+if _tle_enabled():
     import triton.experimental.tle.language as tle
 else:  # pragma: no cover - module is skipped
     tle = None
@@ -64,7 +64,7 @@ def _smem_atomic_cas_kernel(old_out, new_out, N: tl.constexpr):
     tl.store(new_out + i, tl.load(p))
 
 
-def test_mctle_atomic_add_on_shared_pointer():
+def test_tle_atomic_add_on_shared_pointer():
     n = 256
     old = torch.full((n, ), -1, dtype=torch.int32, device=DEVICE)
     new = torch.full_like(old, -1)
@@ -76,7 +76,7 @@ def test_mctle_atomic_add_on_shared_pointer():
     torch.testing.assert_close(new, ref + 7)
 
 
-def test_mctle_atomic_cas_on_shared_pointer():
+def test_tle_atomic_cas_on_shared_pointer():
     n = 256
     old = torch.full((n, ), -1, dtype=torch.int32, device=DEVICE)
     new = torch.full_like(old, -1)
@@ -133,7 +133,7 @@ def _two_buffers_pointer_chain_kernel(out_a, out_b, N: tl.constexpr):
     (_two_buffers_tensor_index_kernel, 512),
     (_two_buffers_pointer_chain_kernel, 256),
 ], ids=["tensor_index", "pointer_chain"])
-def test_mctle_two_live_buffers_do_not_overlap(kernel, n):
+def test_tle_two_live_buffers_do_not_overlap(kernel, n):
     out_a = torch.full((n, ), -1, dtype=torch.int32, device=DEVICE)
     out_b = torch.full_like(out_a, -1)
     k = kernel[(1, )](out_a, out_b, N=n, num_warps=4)
@@ -177,7 +177,7 @@ def _buffer_across_reductions_kernel(out, flags, N: tl.constexpr):
     tl.store(flags + 1, (tl.sum((prefix != i * (i + 1) // 2).to(tl.int32), axis=0) == 0).to(tl.int32))
 
 
-def test_mctle_buffer_live_across_histogram():
+def test_tle_buffer_live_across_histogram():
     n, bins = 4096, 256
     inp = torch.randint(0, 1 << 16, (n, ), dtype=torch.int32, device=DEVICE)
     out = torch.full_like(inp, -1)
@@ -187,7 +187,7 @@ def test_mctle_buffer_live_across_histogram():
     torch.testing.assert_close(out, inp)
 
 
-def test_mctle_buffer_live_across_reductions():
+def test_tle_buffer_live_across_reductions():
     n = 512
     out = torch.full((n, ), -1, dtype=torch.int32, device=DEVICE)
     flags = torch.zeros(2, dtype=torch.int32, device=DEVICE)
@@ -227,7 +227,7 @@ def _pointer_as_second_result_kernel(out, N: tl.constexpr):
     tl.store(out + idx, tl.load(forwarded, mask=mask, other=0))
 
 
-def test_mctle_pointer_as_second_result_keeps_buffer_live():
+def test_tle_pointer_as_second_result_keeps_buffer_live():
     n = 256
     out = torch.full((n, ), -1, dtype=torch.int32, device=DEVICE)
     k = _pointer_as_second_result_kernel[(1, )](out, N=n, num_warps=4)
